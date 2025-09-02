@@ -5,6 +5,8 @@ import { AIOrchestrator } from './core/orchestrator';
 import { InMemoryManager } from './memory/in-memory';
 import { TechnicalStrategyAgent } from './agents/technical-strategy';
 import { AgileCoordinatorAgent } from './agents/agile-coordinator';
+import { DesignLeadAgent } from './agents/design-lead';
+import { BackendEngineerAgent } from './agents/backend-engineer';
 import config from './config';
 
 // Export main classes for plugin use
@@ -12,6 +14,8 @@ export { AIOrchestrator } from './core/orchestrator';
 export { BaseAgent } from './core/base-agent';
 export { TechnicalStrategyAgent } from './agents/technical-strategy';
 export { AgileCoordinatorAgent } from './agents/agile-coordinator';
+export { DesignLeadAgent } from './agents/design-lead';
+export { BackendEngineerAgent } from './agents/backend-engineer';
 export * from './types';
 export * from './core/interfaces';
 
@@ -33,6 +37,8 @@ export async function createAIOrchestrator(): Promise<AIOrchestrator> {
   // Register default agents
   const technicalStrategyAgent = new TechnicalStrategyAgent();
   const agileCoordinatorAgent = new AgileCoordinatorAgent();
+  const designLeadAgent = new DesignLeadAgent();
+  const backendEngineerAgent = new BackendEngineerAgent();
 
   await orchestrator.registerAgent(technicalStrategyAgent, {
     sophisticationAdaptation: true,
@@ -42,6 +48,20 @@ export async function createAIOrchestrator(): Promise<AIOrchestrator> {
   });
 
   await orchestrator.registerAgent(agileCoordinatorAgent, {
+    sophisticationAdaptation: true,
+    transformationFocus: true,
+    marketAdaptation: true,
+    qualityLoops: true
+  });
+
+  await orchestrator.registerAgent(designLeadAgent, {
+    sophisticationAdaptation: true,
+    transformationFocus: true,
+    marketAdaptation: true,
+    qualityLoops: true
+  });
+
+  await orchestrator.registerAgent(backendEngineerAgent, {
     sophisticationAdaptation: true,
     transformationFocus: true,
     marketAdaptation: true,
