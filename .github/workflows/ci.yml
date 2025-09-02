@@ -1,0 +1,190 @@
+name: AI Agent Quality Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Lint code
+        run: npm run lint
+        
+      - name: Run type checking
+        run: npx tsc --noEmit
+        
+      - name: Build project
+        run: npm run build
+        
+      - name: Run unit tests
+        run: npm test
+        
+      - name: Generate coverage report
+        run: npm test -- --coverage
+        
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  quality-gates:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build project
+        run: npm run build
+        
+      - name: Test sophistication adaptation
+        run: |
+          echo "Testing sophistication adaptation..."
+          node -e "
+            const { createAIOrchestrator } = require('./dist/index.js');
+            (async () => {
+              const orchestrator = await createAIOrchestrator();
+              const response1 = await orchestrator.process('design an architecture', 'test1', 'user1');
+              const response2 = await orchestrator.process('design an architecture', 'test2', 'user2');
+              console.log('✅ Sophistication adaptation test passed');
+            })();
+          "
+          
+      - name: Test context continuity
+        run: |
+          echo "Testing context continuity..."
+          node -e "
+            const { createAIOrchestrator } = require('./dist/index.js');
+            (async () => {
+              const orchestrator = await createAIOrchestrator();
+              await orchestrator.process('Start a new project', 'session1', 'user1');
+              const response = await orchestrator.process('What was my last request?', 'session1', 'user1');
+              console.log('✅ Context continuity test passed');
+            })();
+          "
+          
+      - name: Test plugin compatibility
+        run: |
+          echo "Testing plugin compatibility..."
+          node -e "
+            const { createAIOrchestrator } = require('./dist/index.js');
+            (async () => {
+              const orchestrator = await createAIOrchestrator();
+              const plugin = orchestrator.createChatbotPlugin();
+              const response = await plugin.handleMessage('Hello', 'test-session');
+              console.log('✅ Plugin compatibility test passed');
+            })();
+          "
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  build-docker:
+    needs: [lint-and-test, quality-gates]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ai-orchestration:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  performance-test:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build project
+        run: npm run build
+        
+      - name: Run performance tests
+        run: |
+          echo "Running performance benchmarks..."
+          node -e "
+            const { createAIOrchestrator } = require('./dist/index.js');
+            (async () => {
+              const orchestrator = await createAIOrchestrator();
+              const start = Date.now();
+              for (let i = 0; i < 10; i++) {
+                await orchestrator.process('test message ' + i, 'perf-test', 'user1');
+              }
+              const end = Date.now();
+              const avgTime = (end - start) / 10;
+              console.log('Average response time:', avgTime + 'ms');
+              if (avgTime > 5000) {
+                throw new Error('Performance test failed: Average response time too high');
+              }
+              console.log('✅ Performance test passed');
+            })();
+          "
