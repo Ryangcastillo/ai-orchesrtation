@@ -1,4 +1,4 @@
-# Penny
+# CiVi Builder
 ├── README.md
 ├── .env.example
 ├── package.json
